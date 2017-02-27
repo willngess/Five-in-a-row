@@ -1,18 +1,92 @@
 var cvs = document.getElementById("canvas"),
  	ctx = cvs.getContext("2d"),
+ 	reset = document.getElementById("reset"),
+ 	msg = document.getElementById("msg"),
  	flag = true,
- 	chessBoard = [];
+ 	chessBoard = [],
+ 	wins = [],
+ 	count = 0,
+ 	myWin = [],
+ 	computerWin = [],
+ 	over = false;
 
- for(var i = 0; i < 15; i++){
- 	chessBoard[i] = [];
- 	for(var j = 0; j < 15; j++){
- 		chessBoard[i][j] = 0;
- 	}
+
+
+
+function init(){
+
+	flag = true;
+	over = false;
+	count = 0;  
+
+	// 初始化棋盘上边的棋子
+	for(var i = 0; i < 15; i++){
+	 	chessBoard[i] = [];
+	 	for(var j = 0; j < 15; j++){
+	 		chessBoard[i][j] = 0;
+	 	}
+	}
+
+	// 初始化赢法数组
+
+	for(var i = 0; i < 15; i++){
+		wins[i] = []
+		for(var j = 0; j < 15; j++){
+			wins[i][j] = [];
+		}
+	}
+	// 横向的所有赢法
+	for(var i = 0; i < 15; i++){
+		for(var j = 0; j < 11; j++){
+			for(var k = 0; k < 5; k++){
+				wins[i][j + k][count] = true;
+			}
+		count ++;
+		}
+	}
+	// 竖向的所有赢法
+	for(var i = 0; i < 15; i++){
+		for(var j = 0; j < 11; j++){
+			for(var k = 0; k < 5; k++){
+				wins[j + k][i][count] = true;
+			}
+			count ++;
+		}
+	}
+	// 斜线上的所有赢法
+	for(var i = 0; i < 11; i++){
+		for(var j = 14; j > 3; j--){
+			for(var k = 0; k < 5; k++){
+				wins[i + k][j - k][count] = true;
+			}
+			count ++;
+		}
+	}
+
+	// 反斜线上的所有赢法
+	for(var i = 0; i < 11; i++){
+		for(var j = 0; j < 11; j++){
+			for(var k = 0; k < 5; k++){
+				wins[i + k][j + k][count] = true;
+			}
+			count ++;
+		}
+	}
+
+	for(var i = 0; i < count; i++){
+		myWin[i] = 0;
+		computerWin[i] = 0;
+	}
+	msg.innerHTML = "";
+	ctx.clearRect(0,0,450,450);
+	drawBgFont();
+	drawChessBoard();
 }
+
 
 function drawBgFont(){
 	ctx.fillStyle = "#efefef";
-	ctx.font = "100px 楷体";
+	ctx.font = "bold 100px 楷体";
 	ctx.textAlign = "center";
 	ctx.textBaseline = "middle";
 	ctx.fillText("五子棋", cvs.width / 2, cvs.height / 2);
@@ -20,6 +94,7 @@ function drawBgFont(){
 
 function drawChessBoard(){
  	ctx.strokeStyle = "#a8a8a8";
+ 	ctx.lineWidth = "1";
 	for(var i = 0; i < 15; i++){
 		// 绘制横线
 		ctx.beginPath();
@@ -57,7 +132,109 @@ function drawPieces(i, j, flag){
 
 }
 
+
+function computerAI(){
+
+	var myScore = [],
+	    computerScore = [],
+	    maxScore = 0,
+	    m = 0,
+	    n = 0;
+
+	for(var i = 0; i < 15; i++){
+		myScore[i] = [];
+		computerScore[i] = [];
+		for(var j = 0; j < 15; j++){
+			myScore[i][j] = 0;
+			computerScore[i][j] = 0;
+		}
+	}
+
+	for(var i = 0; i < 15; i++){
+		for(var j = 0; j < 15; j++){
+			if(chessBoard[i][j] === 0){
+				for(var k = 0; k < count; k++){
+					if(wins[i][j][k]){
+						if(myWin[k] === 1){
+							myScore[i][j] += 7;
+						}else if(myWin[k] === 2){
+							myScore[i][j] += 35;
+						}else if(myWin[k] === 3){
+							myScore[i][j] += 800;
+						}else if(myWin[k] === 4){
+							myScore[i][j] += 15000;
+						}
+
+						if(computerWin[k] === 1){
+							computerScore[i][j] += 15;
+						}else if(computerWin[k] === 2){
+							computerScore[i][j] += 400;
+						}else if(computerWin[k] === 3){
+							computerScore[i][j] += 1800;
+						}else if(computerWin[k] === 4){
+							computerScore[i][j] += 100000;
+						}
+					}
+				}
+ 
+				if(myScore[i][j] > maxScore){
+					maxScore = myScore[i][j];
+					m = i;
+					n = j;
+				}else if(myScore[i][j] === maxScore){
+					if(computerScore[i][j] > computerScore[m][n]){
+						maxScore = computerScore[i][j];
+						m = i;
+						n = j;
+					}
+				}
+
+				if(computerScore[i][j] > maxScore){
+					maxScore = computerScore[i][j];
+					m = i;
+					n = j;
+				}else if(computerScore[i][j] === maxScore){
+					if(myScore[i][j] > myScore[m][n]){
+						maxScore = myScore[i][j];
+						m = i;
+						n = j;
+					}
+				}
+
+			}
+		}
+	}
+
+
+	drawPieces(m, n, false);
+	chessBoard[m][n] = 2;
+
+	for(var k = 0; k < count; k++){
+		if(wins[m][n][k]){
+			computerWin[k] ++;
+			myWin[k] = 6;
+		}
+		if(computerWin[k] === 5){
+			over = true;
+			msg.innerHTML = "You defeat!";
+		}
+
+	}
+	if(!over){
+		flag = !flag;
+	}
+
+}
+
 cvs.addEventListener("click", function(e){
+
+
+	if(over){
+		return;
+	}
+	if(!flag){
+		return;
+	}
 
 	var x = e.offsetX,
 		y = e.offsetY,
@@ -66,15 +243,29 @@ cvs.addEventListener("click", function(e){
 
 	if(chessBoard[i][j] === 0){
 		drawPieces(i, j, flag);
-		flag = !flag;
-		if(flag){
-			chessBoard[i][j] = 1;
-		}else{
-			chessBoard[i][j] = 2;
+		chessBoard[i][j] = 1;
+
+		for(var k = 0; k < count; k++){
+			if(wins[i][j][k]){
+				myWin[k] ++;
+				computerWin[k] = 6;
+			}
+			if(myWin[k] === 5){
+				over = true;
+				msg.innerHTML = "You win!"
+			}
+
+		}
+		if(!over){
+			flag = !flag;
+			computerAI();
 		}
 	}
 
 }, false);
 
-drawBgFont();
-drawChessBoard();
+reset.onclick = init;
+init();
+
+
+
